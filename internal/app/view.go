@@ -18,20 +18,21 @@ func (m Model) View() string {
 
 	header := m.renderHeader()
 	status := m.renderStatus()
+	footer := m.renderFooter()
 
-	// Core body height = total - 1 header - 1 status - optional 1 overlay prompt
+	// Body height = total - header(1) - footer(1) - status(1) - optional overlay prompt(1)
 	extra := 0
 	if m.cmdActive || m.searchActive {
 		extra = 1
 	}
-	body := m.renderBody(m.height - 2 - extra)
+	body := m.renderBody(m.height - 3 - extra)
 	overlay := m.renderOverlayPrompt()
 
 	parts := []string{header, body}
 	if overlay != "" {
 		parts = append(parts, overlay)
 	}
-	parts = append(parts, status)
+	parts = append(parts, footer, status)
 	out := strings.Join(parts, "\n")
 
 	if m.helpVisible {
@@ -93,6 +94,59 @@ func (m Model) renderOverlayPrompt() string {
 		return m.searchInput.View()
 	}
 	return ""
+}
+
+func (m Model) renderFooter() string {
+	var hints []hint
+	switch {
+	case m.modal != nil:
+		hints = []hint{
+			{"j/k", "move"}, {"enter", "confirm"}, {"esc", "cancel"},
+		}
+	case m.cmdActive:
+		hints = []hint{
+			{"enter", "run"}, {"esc", "cancel"},
+			{":q", "quit"}, {":sync", "resync"}, {":view", "switch"},
+			{":state|assign|priority", "mutate"}, {":open", "browser"},
+		}
+	case m.searchActive:
+		hints = []hint{{"type", "filter"}, {"enter", "commit"}, {"esc", "clear"}}
+	case m.helpVisible:
+		hints = []hint{{"?/esc", "close"}}
+	default:
+		hints = []hint{
+			{"j/k", "move"}, {"gg/G", "top/bot"}, {"1/2", "view"},
+			{"s/a/p", "edit"}, {"/", "filter"}, {":", "cmd"},
+			{"r", "refresh"}, {"?", "help"}, {"q", "quit"},
+		}
+	}
+	return renderHints(hints, m.width)
+}
+
+type hint struct{ key, label string }
+
+func renderHints(hs []hint, width int) string {
+	sep := views.StyleDim.Render(" · ")
+	var out strings.Builder
+	used := 0
+	for i, h := range hs {
+		part := views.StyleHelpKey.Render(h.key) + views.StyleDim.Render(" "+h.label)
+		// Rough visible-width estimate (ignores ANSI). Keeps footer from wrapping.
+		vis := len(h.key) + 1 + len(h.label)
+		add := vis
+		if i > 0 {
+			add += 3 // sep width
+		}
+		if used+add > width {
+			break
+		}
+		if i > 0 {
+			out.WriteString(sep)
+		}
+		out.WriteString(part)
+		used += add
+	}
+	return out.String()
 }
 
 func (m Model) renderStatus() string {
