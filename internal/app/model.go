@@ -59,6 +59,7 @@ type Model struct {
 	syncing      bool
 	lastSyncedAt time.Time
 	errorBanner  string
+	infoBanner   string
 
 	// Modes
 	modal         *modals.Picker

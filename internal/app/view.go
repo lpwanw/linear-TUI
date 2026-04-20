@@ -116,8 +116,9 @@ func (m Model) renderFooter() string {
 	default:
 		hints = []hint{
 			{"j/k", "move"}, {"gg/G", "top/bot"}, {"1/2", "view"},
-			{"s/a/p", "edit"}, {"/", "filter"}, {":", "cmd"},
-			{"r", "refresh"}, {"?", "help"}, {"q", "quit"},
+			{"s/a/p", "edit"}, {"y/Y", "yank br/url"},
+			{"/", "filter"}, {":", "cmd"}, {"r", "refresh"},
+			{"?", "help"}, {"q", "quit"},
 		}
 	}
 	return renderHints(hints, m.width)
@@ -160,6 +161,9 @@ func (m Model) renderStatus() string {
 		parts = append(parts, "filter: "+m.searchQuery)
 	}
 	status := views.StyleStatus.Render(strings.Join(parts, " · "))
+	if m.infoBanner != "" {
+		status += "   " + views.StyleInfo.Render(m.infoBanner)
+	}
 	if m.errorBanner != "" {
 		status += "   " + views.StyleError.Render(m.errorBanner)
 	}
@@ -174,6 +178,7 @@ func (m Model) renderHelp() string {
 		{"Ctrl-d / u", "half-page down / up"},
 		{"Ctrl-f / b", "page down / up"},
 		{"s / a / p", "state / assignee / priority picker"},
+		{"y / Y", "yank branch slug / url to clipboard"},
 		{"/", "live filter"},
 		{"r", "refresh current view"},
 		{":sync", "full resync"},

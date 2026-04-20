@@ -84,6 +84,10 @@ func (m Model) handleNormalKey(k tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.openAssigneePicker(), nil
 	case "p":
 		return m.openPriorityPicker(), nil
+	case "y":
+		return m.yankBranch()
+	case "Y":
+		return m.yankURL()
 	}
 	return m.handleMotionKey(k)
 }
@@ -212,6 +216,39 @@ func (m Model) dispatchRefresh() (tea.Model, tea.Cmd) {
 	}
 	m.syncing = false
 	return m, nil
+}
+
+// ------- Yank (clipboard) -------
+
+func (m Model) yankBranch() (tea.Model, tea.Cmd) {
+	iss := m.selectedIssue()
+	if iss == nil {
+		m.errorBanner = "no issue selected"
+		return m, clearBannerAfter(3 * time.Second)
+	}
+	slug := BranchSlug(iss.Identifier, iss.Title)
+	tool, err := Clipboard(slug)
+	if err != nil {
+		m.errorBanner = "clipboard unavailable: " + err.Error()
+		return m, clearBannerAfter(4 * time.Second)
+	}
+	m.infoBanner = "copied branch (" + tool + "): " + slug
+	return m, clearBannerAfter(3 * time.Second)
+}
+
+func (m Model) yankURL() (tea.Model, tea.Cmd) {
+	iss := m.selectedIssue()
+	if iss == nil || iss.URL == "" {
+		m.errorBanner = "no URL"
+		return m, clearBannerAfter(3 * time.Second)
+	}
+	tool, err := Clipboard(iss.URL)
+	if err != nil {
+		m.errorBanner = "clipboard unavailable: " + err.Error()
+		return m, clearBannerAfter(4 * time.Second)
+	}
+	m.infoBanner = "copied URL (" + tool + "): " + iss.URL
+	return m, clearBannerAfter(3 * time.Second)
 }
 
 // ------- Modal openers -------

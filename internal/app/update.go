@@ -37,6 +37,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case BannerClearMsg:
 		m.errorBanner = ""
+		m.infoBanner = ""
 		return m, nil
 
 	case sync.BootstrapResultMsg:

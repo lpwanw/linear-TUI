@@ -25,6 +25,7 @@ var (
 	StyleHeader      = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("39"))
 	StyleStatus      = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
 	StyleError       = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
+	StyleInfo        = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Bold(true)
 	StyleDim         = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	StylePane        = lipgloss.NewStyle().Padding(0, 1)
 	StyleDetailTitle = lipgloss.NewStyle().Bold(true)
