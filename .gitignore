@@ -5,3 +5,7 @@
 *.db-shm
 coverage.out
 .DS_Store
+
+# Override global ignore of plans/ — project-specific planning docs are tracked.
+!plans/
+!plans/**
