@@ -1,0 +1,7 @@
+/lnr
+/dist/
+*.db
+*.db-wal
+*.db-shm
+coverage.out
+.DS_Store
