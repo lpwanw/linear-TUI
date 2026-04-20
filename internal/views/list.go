@@ -78,10 +78,7 @@ func cursorRowLines(iss cache.Issue, userByID map[string]cache.User, primary str
 		assignee = u.Name
 	}
 	meta := fmt.Sprintf("  %s priority · %s", cache.PriorityLabel(iss.Priority), assignee)
-	detail := "  " + iss.URL
-	if detail == "  " {
-		detail = "  " + TruncateVisual(strings.ReplaceAll(iss.Description, "\n", " "), innerWidth-2)
-	}
+	detail := "  " + iss.Title
 	return []string{
 		StyleCursor.Render(PadRight(TruncateVisual(primary, innerWidth), innerWidth)),
 		StyleCursor.Render(PadRight(TruncateVisual(meta, innerWidth), innerWidth)),
