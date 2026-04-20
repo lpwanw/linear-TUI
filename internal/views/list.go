@@ -1,73 +1,125 @@
 package views
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/taynguyen/linear-tui/internal/cache"
 )
 
-// RenderIssueList renders a list of issues with a cursor row, inside the given
-// pane width and height. Returns a newline-joined string with exactly `height`
-// lines (padding with blanks if too short, truncating if too long).
-func RenderIssueList(issues []cache.Issue, stateByID map[string]cache.WorkflowState, cursor, width, height int) string {
+// RenderIssueList renders issues with a cursor row, inside the given pane
+// width and height. The cursor row is 3 lines tall (primary + 2 metadata);
+// other rows are 1 line. Returns a newline-joined string padded or truncated
+// to exactly `height` lines.
+func RenderIssueList(issues []cache.Issue, stateByID map[string]cache.WorkflowState, userByID map[string]cache.User, cursor, width, height int) string {
 	if height <= 0 {
 		return ""
 	}
-	lines := make([]string, 0, height)
-
-	// Column budget inside the pane (width includes padding via StylePane.Padding(0,1)).
-	innerWidth := width - 2 // subtract left+right padding
+	innerWidth := width - 2
 	if innerWidth < 10 {
 		innerWidth = 10
 	}
 
-	// Column widths: icon(1) + space + ident(8) + space + state(10) + space + updated(5) + space + title(rest)
 	const (
-		colIcon    = 1
-		colIdent   = 8
-		colState   = 10
-		colUpdated = 5
-		gaps       = 4 // number of single-space gaps between the 5 columns
+		colIcon     = 1
+		colIdent    = 8
+		colState    = 10
+		colUpdated  = 5
+		gaps        = 4
+		cursorRowH  = 3
 	)
 	colTitle := innerWidth - colIcon - colIdent - colState - colUpdated - gaps
 	if colTitle < 10 {
 		colTitle = 10
 	}
 
-	start := 0
-	end := len(issues)
-	if end > height {
-		// Center the cursor within the visible window.
-		start = cursor - height/2
-		if start < 0 {
-			start = 0
-		}
-		if start+height > end {
-			start = end - height
-		}
-		end = start + height
-	}
+	n := len(issues)
+	start, end := visibleWindow(cursor, n, height, cursorRowH)
 
+	var lines []string
 	for i := start; i < end; i++ {
 		iss := issues[i]
 		stateName := ""
 		if ws, ok := stateByID[iss.StateID]; ok {
 			stateName = ws.Name
 		}
-		row := strings.Join([]string{
+		primary := strings.Join([]string{
 			PriorityIcon(iss.Priority),
 			PadRight(TruncateVisual(iss.Identifier, colIdent), colIdent),
 			PadRight(TruncateVisual(stateName, colState), colState),
 			PadRight(TruncateVisual(RelativeTime(iss.UpdatedAt), colUpdated), colUpdated),
 			TruncateVisual(iss.Title, colTitle),
 		}, " ")
+
 		if i == cursor {
-			row = StyleCursor.Render(PadRight(row, innerWidth))
+			lines = append(lines, cursorRowLines(iss, userByID, primary, innerWidth)...)
+			if len(lines) >= height {
+				break
+			}
+		} else {
+			lines = append(lines, primary)
 		}
-		lines = append(lines, row)
 	}
+
+	// Pad or truncate to exactly `height` lines.
 	for len(lines) < height {
 		lines = append(lines, strings.Repeat(" ", innerWidth))
 	}
+	if len(lines) > height {
+		lines = lines[:height]
+	}
 	return strings.Join(lines, "\n")
+}
+
+// cursorRowLines returns the 3 lines of a highlighted selected row.
+func cursorRowLines(iss cache.Issue, userByID map[string]cache.User, primary string, innerWidth int) []string {
+	assignee := "(unassigned)"
+	if u, ok := userByID[iss.AssigneeID]; ok && iss.AssigneeID != "" {
+		assignee = u.Name
+	}
+	meta := fmt.Sprintf("  %s priority · %s", cache.PriorityLabel(iss.Priority), assignee)
+	detail := "  " + iss.URL
+	if detail == "  " {
+		detail = "  " + TruncateVisual(strings.ReplaceAll(iss.Description, "\n", " "), innerWidth-2)
+	}
+	return []string{
+		StyleCursor.Render(PadRight(TruncateVisual(primary, innerWidth), innerWidth)),
+		StyleCursor.Render(PadRight(TruncateVisual(meta, innerWidth), innerWidth)),
+		StyleCursor.Render(PadRight(TruncateVisual(detail, innerWidth), innerWidth)),
+	}
+}
+
+// visibleWindow picks [start, end) such that cursor is on-screen, reserving
+// extra lines for the expanded cursor row.
+func visibleWindow(cursor, n, height, cursorRowH int) (int, int) {
+	if n == 0 {
+		return 0, 0
+	}
+	if cursor < 0 {
+		cursor = 0
+	}
+	if cursor >= n {
+		cursor = n - 1
+	}
+	// Effective capacity in rows treating cursor as cursorRowH-1 extra rows.
+	cap := height - (cursorRowH - 1)
+	if cap < 1 {
+		cap = 1
+	}
+	if n <= cap {
+		return 0, n
+	}
+	start := cursor - cap/2
+	if start < 0 {
+		start = 0
+	}
+	end := start + cap
+	if end > n {
+		end = n
+		start = end - cap
+		if start < 0 {
+			start = 0
+		}
+	}
+	return start, end
 }

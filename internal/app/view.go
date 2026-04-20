@@ -77,7 +77,7 @@ func (m Model) renderBody(height int) string {
 	}
 	listW, detailW := paneWidths(m.width)
 
-	listBody := views.RenderIssueList(m.currentIssues(), m.stateByID, m.cursor, listW, height)
+	listBody := views.RenderIssueList(m.currentIssues(), m.stateByID, m.userByID, m.cursor, listW, height)
 	listPane := views.StylePane.Width(listW).Height(height).Render(listBody)
 
 	detail := m.detailR.Render(m.selectedIssue(), m.stateByID, m.userByID, detailW, height)
